@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Bisection Plane Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    overflow: hidden;
+    background: #11131a;
+    color: #f4f1ea;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  canvas { display: block; }
+  #panel {
+    position: absolute;
+    left: 22px;
+    top: 22px;
+    width: min(390px, calc(100vw - 44px));
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(17, 19, 26, 0.82);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+  }
+  h1 {
+    font-size: 21px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    margin-bottom: 14px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  button {
+    min-height: 40px;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #8c1d18;
+  }
+  button:nth-child(2) { background: #2c6693; }
+  button:nth-child(3) { background: #006c5b; }
+  button:nth-child(4) { background: #c35413; }
+  button:hover { filter: brightness(1.08); }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f1ea;
+    margin-bottom: 8px;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: #d9a441;
+  }
+  .readout {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+    font-size: 14px;
+  }
+  .meter {
+    height: 16px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.16);
+  }
+  .fill {
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--negative-color), var(--positive-color));
+  }
+  #status {
+    margin-top: 12px;
+    min-height: 22px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #d9a441;
+  }
+  #legend {
+    position: absolute;
+    right: 22px;
+    bottom: 22px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(17, 19, 26, 0.74);
+    border: 1px solid rgba(255,255,255,0.12);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .key {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 7px;
+    vertical-align: -2px;
+  }
+  .blue { background: #4c5666; }
+  .gold { background: #d9a441; }
+  @media (max-width: 700px) {
+    #panel {
+      left: 12px;
+      top: 12px;
+      width: calc(100vw - 24px);
+      padding: 14px;
+    }
+    h1 { font-size: 18px; }
+    .controls { grid-template-columns: 1fr; }
+    #legend { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="panel">
+  <h1>3D Bisection Plane</h1>
+  <div class="controls">
+    <button id="newObject">New Scene</button>
+    <button id="addObject">Add Object</button>
+    <button id="newPlane">New Plane</button>
+    <button id="wire">Wireframe</button>
+  </div>
+  <label for="offset">Plane Position</label>
+  <input id="offset" type="range" min="0" max="1" step="0.001" value="0">
+  <div id="readouts"></div>
+  <div id="status">Move the plane through the object</div>
+</div>
+<div id="legend">
+  <span><span class="key blue"></span>negative side</span>
+  <span><span class="key gold"></span>positive side</span>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x11131a);
+
+const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(8.2, 5.8, 10.4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.zoomSpeed = 1.65;
+controls.minDistance = 3;
+controls.maxDistance = 80;
+controls.target.set(0.5, 0, 0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1);
+key.position.set(5, 8, 6);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7aa7ff, 0.42);
+rim.position.set(-6, 3, -5);
+scene.add(rim);
+
+const grid = new THREE.GridHelper(22, 22, 0x333946, 0x202630);
+grid.position.y = -2.05;
+scene.add(grid);
+
+const offsetInput = document.getElementById('offset');
+const sliderLabel = document.querySelector('label[for="offset"]');
+const status = document.getElementById('status');
+const readouts = document.getElementById('readouts');
+
+let positivePlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+let negativePlane = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);
+let planeNormal = new THREE.Vector3(1, 0, 0);
+let planeOffset = 0;
+let objects = [];
+let wireframe = false;
+let objectCount = 0;
+let familyU = new THREE.Vector3(1, 0, 0);
+let familyV = new THREE.Vector3(0, 0, 1);
+let soloSignedValues = [];
+
+let solidGroup = new THREE.Group();
+scene.add(solidGroup);
+let planeGroup = new THREE.Group();
+scene.add(planeGroup);
+
+const objectColorPairs = [
+  { negative: 0x2c6693, positive: 0xd9a441 },
+  { negative: 0x006c5b, positive: 0xef7b45 },
+  { negative: 0x6558b1, positive: 0xf0c13b },
+  { negative: 0x8b3a62, positive: 0x67c5d8 },
+  { negative: 0x4f7a38, positive: 0xe06b9a },
+  { negative: 0x346f7f, positive: 0xc98cff }
+];
+
+function cssColor(hex) {
+  return `#${hex.toString(16).padStart(6, '0')}`;
+}
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function randomUnitVector() {
+  const z = randomBetween(-1, 1);
+  const t = randomBetween(0, Math.PI * 2);
+  const r = Math.sqrt(1 - z * z);
+  return new THREE.Vector3(r * Math.cos(t), z, r * Math.sin(t)).normalize();
+}
+
+function radiusForDirection(dir, seed) {
+  const a = Math.atan2(dir.z, dir.x);
+  const b = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+  return 1
+    + 0.18 * Math.sin(seed.a * a + seed.b)
+    + 0.14 * Math.cos(seed.c * b + seed.d)
+    + 0.10 * Math.sin(seed.e * (a + b));
+}
+
+function clearGroup(group) {
+  while (group.children.length) {
+    const child = group.children.pop();
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+      else child.material.dispose();
+    }
+  }
+}
+
+function nextObjectCenter(boundsRadius) {
+  if (objectCount === 0) return new THREE.Vector3(0, 0, 0);
+  for (let attempt = 0; attempt < 90; attempt++) {
+    const angle = randomBetween(0, Math.PI * 2);
+    const radius = randomBetween(4.2, 5.5 + objectCount * 0.9);
+    const candidate = new THREE.Vector3(
+      Math.cos(angle) * radius,
+      randomBetween(-0.2, 0.45),
+      Math.sin(angle) * radius
+    );
+    const clear = objects.every((object) => (
+      candidate.distanceTo(object.center) > object.boundsRadius + boundsRadius + 0.9
+    ));
+    if (clear) return candidate;
+  }
+  const fallbackAngle = objectCount * Math.PI * 0.72;
+  const fallbackRadius = 5.2 + objectCount * 1.45;
+  return new THREE.Vector3(
+    Math.cos(fallbackAngle) * fallbackRadius,
+    randomBetween(-0.2, 0.45),
+    Math.sin(fallbackAngle) * fallbackRadius
+  );
+}
+
+function randomDirectionFamily() {
+  familyU = randomUnitVector();
+  const helper = Math.abs(familyU.y) < 0.88 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  familyV = new THREE.Vector3().crossVectors(familyU, helper).normalize();
+}
+
+function currentNormalFromParameter(value) {
+  const angle = value * Math.PI * 2;
+  return new THREE.Vector3()
+    .copy(familyU)
+    .multiplyScalar(Math.cos(angle))
+    .addScaledVector(familyV, Math.sin(angle))
+    .normalize();
+}
+
+function median(values) {
+  const sorted = values.slice().sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+function offsetForFirstObject(normal) {
+  return median(objects[0].samples.map((point) => normal.dot(point)));
+}
+
+function addRandomObject() {
+  const colors = objectColorPairs[objectCount % objectColorPairs.length];
+  const seed = {
+    a: Math.floor(randomBetween(2, 6)),
+    b: randomBetween(0, Math.PI * 2),
+    c: Math.floor(randomBetween(3, 7)),
+    d: randomBetween(0, Math.PI * 2),
+    e: Math.floor(randomBetween(4, 8))
+  };
+  const scaleMultiplier = objectCount === 0 ? 1 : randomBetween(0.72, 1.05);
+  const scale = new THREE.Vector3(
+    randomBetween(1.15, 1.85) * scaleMultiplier,
+    randomBetween(0.85, 1.45) * scaleMultiplier,
+    randomBetween(1.0, 1.7) * scaleMultiplier
+  );
+  const boundsRadius = Math.max(scale.x, scale.y, scale.z) * 1.52;
+  const center = nextObjectCenter(boundsRadius);
+  const geometry = new THREE.IcosahedronGeometry(1, 5);
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const dir = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize();
+    const r = radiusForDirection(dir, seed);
+    pos.setXYZ(
+      i,
+      center.x + dir.x * r * scale.x,
+      center.y + dir.y * r * scale.y,
+      center.z + dir.z * r * scale.z
+    );
+  }
+  geometry.computeVertexNormals();
+
+  const positiveMaterial = new THREE.MeshStandardMaterial({
+    color: colors.positive,
+    roughness: 0.58,
+    metalness: 0.05,
+    transparent: true,
+    opacity: 0.78,
+    side: THREE.DoubleSide,
+    clippingPlanes: [positivePlane],
+    wireframe
+  });
+  const negativeMaterial = new THREE.MeshStandardMaterial({
+    color: colors.negative,
+    roughness: 0.62,
+    metalness: 0.04,
+    transparent: true,
+    opacity: 0.78,
+    side: THREE.DoubleSide,
+    clippingPlanes: [negativePlane],
+    wireframe
+  });
+  solidGroup.add(new THREE.Mesh(geometry, positiveMaterial));
+  solidGroup.add(new THREE.Mesh(geometry.clone(), negativeMaterial));
+
+  const objectSamples = [];
+  const samplesForObject = objectCount === 0 ? 9000 : 5200;
+  for (let i = 0; i < samplesForObject; i++) {
+    const dir = randomUnitVector();
+    const r = Math.cbrt(Math.random()) * radiusForDirection(dir, seed);
+    objectSamples.push(new THREE.Vector3(
+      center.x + dir.x * r * scale.x,
+      center.y + dir.y * r * scale.y,
+      center.z + dir.z * r * scale.z
+    ));
+  }
+  objects.push({ samples: objectSamples, center, boundsRadius, colors });
+  objectCount++;
+  updateSliderMode(false);
+}
+
+function buildObject() {
+  clearGroup(solidGroup);
+  objects = [];
+  objectCount = 0;
+  soloSignedValues = [];
+  randomDirectionFamily();
+  planeNormal = randomUnitVector();
+  addRandomObject();
+}
+
+function buildPlaneVisual() {
+  clearGroup(planeGroup);
+  const planeSize = 14;
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.35,
+    metalness: 0.0,
+    transparent: true,
+    opacity: 0.24,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeSize, planeSize, 1, 1), mat);
+  planeGroup.add(mesh);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.PlaneGeometry(planeSize, planeSize, 1, 1)),
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.62 })
+  );
+  planeGroup.add(edges);
+}
+
+function orientPlaneVisual() {
+  planeGroup.position.copy(planeNormal).multiplyScalar(planeOffset);
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), planeNormal);
+  planeGroup.quaternion.copy(q);
+}
+
+function setPlane(offset) {
+  planeOffset = offset;
+  positivePlane.normal.copy(planeNormal).multiplyScalar(-1);
+  positivePlane.constant = planeOffset;
+  negativePlane.normal.copy(planeNormal);
+  negativePlane.constant = -planeOffset;
+  orientPlaneVisual();
+}
+
+function splitForSamples(samples) {
+  let positive = 0;
+  for (const point of samples) {
+    if (planeNormal.dot(point) >= planeOffset) positive++;
+  }
+  return positive / samples.length;
+}
+
+function updateObjectReadouts() {
+  const rows = objects.map((object, index) => {
+    const positive = splitForSamples(object.samples);
+    const negative = 1 - positive;
+    const row = document.createElement('div');
+    row.className = 'readout';
+
+    const meter = document.createElement('div');
+    meter.className = 'meter';
+    const fill = document.createElement('div');
+    fill.className = 'fill';
+    fill.style.width = `${(negative * 100).toFixed(1)}%`;
+    fill.style.setProperty('--negative-color', cssColor(object.colors.negative));
+    fill.style.setProperty('--positive-color', cssColor(object.colors.positive));
+    meter.appendChild(fill);
+
+    const label = document.createElement('div');
+    label.textContent = `Object ${index + 1}: ${(negative * 100).toFixed(1)}% / ${(positive * 100).toFixed(1)}%`;
+
+    row.append(meter, label);
+    return row;
+  });
+  readouts.replaceChildren(...rows);
+  if (objects.length > 1) {
+    status.textContent = 'Added objects show how this same plane splits them';
+  }
+}
+
+function configureSoloSlider(keepValue) {
+  sliderLabel.textContent = 'Plane Position';
+  soloSignedValues = objects[0].samples.map((point) => planeNormal.dot(point)).sort((a, b) => a - b);
+  const rangeMin = soloSignedValues[0];
+  const rangeMax = soloSignedValues[soloSignedValues.length - 1];
+  offsetInput.min = rangeMin.toFixed(3);
+  offsetInput.max = rangeMax.toFixed(3);
+  offsetInput.step = ((rangeMax - rangeMin) / 800).toFixed(5);
+  const value = keepValue
+    ? THREE.MathUtils.clamp(Number(offsetInput.value), rangeMin, rangeMax)
+    : randomBetween(rangeMin * 0.72, rangeMax * 0.72);
+  offsetInput.value = value.toFixed(3);
+  setPlane(value);
+  updateObjectReadouts();
+  updateSoloStatus();
+}
+
+function setDirectionParameter(value) {
+  if (!objects.length) return;
+  planeNormal = currentNormalFromParameter(value);
+  setPlane(offsetForFirstObject(planeNormal));
+  updateObjectReadouts();
+}
+
+function configureMultiSlider(keepValue) {
+  sliderLabel.textContent = 'Bisection Plane Direction';
+  offsetInput.min = '0';
+  offsetInput.max = '1';
+  offsetInput.step = '0.001';
+  const value = keepValue ? Number(offsetInput.value) : randomBetween(0, 1);
+  offsetInput.value = THREE.MathUtils.clamp(value, 0, 1).toFixed(3);
+  setDirectionParameter(Number(offsetInput.value));
+}
+
+function updateSliderMode(keepValue) {
+  if (!objects.length) return;
+  if (objects.length === 1) configureSoloSlider(keepValue);
+  else configureMultiSlider(keepValue);
+}
+
+function updateSoloStatus() {
+  const positive = splitForSamples(objects[0].samples);
+  const gap = Math.abs(positive - 0.5);
+  if (gap < 0.008) status.textContent = 'Balanced';
+  else status.textContent = `${positive > 0.5 ? 'positive' : 'negative'} side is larger`;
+}
+
+function randomizePlane() {
+  randomDirectionFamily();
+  if (objects.length === 1) {
+    planeNormal = randomUnitVector();
+  }
+  updateSliderMode(false);
+}
+
+document.getElementById('newObject').addEventListener('click', buildObject);
+document.getElementById('addObject').addEventListener('click', addRandomObject);
+document.getElementById('newPlane').addEventListener('click', randomizePlane);
+document.getElementById('wire').addEventListener('click', () => {
+  wireframe = !wireframe;
+  solidGroup.children.forEach((mesh) => { mesh.material.wireframe = wireframe; });
+});
+offsetInput.addEventListener('input', (event) => {
+  if (objects.length === 1) {
+    setPlane(Number(event.target.value));
+    updateObjectReadouts();
+    updateSoloStatus();
+  } else {
+    setDirectionParameter(Number(event.target.value));
+  }
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+buildPlaneVisual();
+buildObject();
+
+function animate() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

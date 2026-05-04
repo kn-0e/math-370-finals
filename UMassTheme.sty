@@ -1,0 +1,162 @@
+% UMass Amherst Theme for the tikzposter
+% package.
+%
+% Modified from Stockholm University theme
+% (originally from University of Melbourne template by Jiyu Chen,
+%  modified by Qi Dang)
+%
+% Adapted for UMass Amherst by Riccardo Pedrotti
+% Last Modified: 2026
+%
+
+% -- COLORS --
+
+% UMass Amherst palette based on
+% https://www.umass.edu/brand/visual-identity/brand-colors
+
+% UMass Amherst primary palette
+% Base color
+\definecolor{UMassMaroon}{HTML}{881C1C}
+
+% Primary companion
+\definecolor{UMassBlack}{HTML}{212721}
+
+% UMass Amherst secondary palette
+% (supportive colors to enhance maroon and black)
+\definecolor{UMassDarkMaroon}{HTML}{6B1515}
+\definecolor{UMassSand}{HTML}{D6C7A3}
+\definecolor{UMassTeal}{HTML}{2C6693}
+\definecolor{UMassWarmGray}{HTML}{A7A8AA}
+\definecolor{UMassIvory}{HTML}{F2E6C9}
+
+% Neutrals palette
+\definecolor{Black}{HTML}{212721}    % UMass Black
+\definecolor{CoolGray5}{HTML}{B1B3B3}
+\definecolor{CoolGray2}{HTML}{D0D0CE}
+\definecolor{CoolGray1}{HTML}{D9D9D9}
+
+% Accent colors (for charts, highlights, etc.)
+\definecolor{Cyan}{HTML}{00AEEF}
+\definecolor{Teal}{HTML}{487F84}
+\definecolor{KellyGreen}{HTML}{348338}
+\definecolor{SeaGreen}{HTML}{006C5B}
+\definecolor{Olive}{HTML}{5C8118}
+\definecolor{Orange}{HTML}{C35413}
+\definecolor{Red}{HTML}{DA291C}
+\definecolor{Magenta}{HTML}{C6007E}
+\definecolor{Purple}{HTML}{6558B1}
+\definecolor{Grape}{HTML}{6D2077}
+
+% Web palette
+\definecolor{LightYellow}{HTML}{FFDE75}
+
+% tikzposter color palette
+
+\definecolorpalette{UMassPalette} {
+    \definecolor{colorOne}{named}{UMassMaroon}
+    \definecolor{colorTwo}{named}{UMassMaroon}
+    \definecolor{colorThree}{named}{UMassMaroon}
+}
+
+% tikzposter style
+\definecolorstyle{UMassStyle} {
+    \usecolorpalette{UMassPalette}
+}{
+    % background
+    \colorlet{backgroundcolor}{white}
+    \colorlet{framecolor}{white}
+    % title colors
+    \colorlet{titlefgcolor}{white}
+    \colorlet{titlebgcolor}{UMassMaroon}
+    % block colors
+    \colorlet{blocktitlebgcolor}{colorOne}
+    \colorlet{blocktitlefgcolor}{white}
+    \colorlet{blockbodybgcolor}{white}
+    \colorlet{blockbodyfgcolor}{Black}
+    % innerblock colors
+    \colorlet{innerblocktitlebgcolor}{white}
+    \colorlet{innerblocktitlefgcolor}{Black}
+    \colorlet{innerblockbodybgcolor}{colorTwo}
+    \colorlet{innerblockbodyfgcolor}{Black}
+    % note colors
+    \colorlet{notefgcolor}{Black}
+    \colorlet{notebgcolor}{colorTwo}
+    \colorlet{noteframecolor}{colorTwo}
+}
+
+% -- STYLE --
+
+% background
+\definebackgroundstyle{UMassBackgroundStyle}{
+    \draw[line width=0pt, color=framecolor, fill=backgroundcolor]
+    (bottomleft) rectangle (topright);
+}
+
+% title
+\definetitlestyle{UMassTitleStyle}{
+    width=\textwidth, linewidth=5pt, titletotopverticalspace=0in
+}{
+    \begin{scope}[line width=\titlelinewidth,]
+    \draw[color=colorThree, fill=titlebgcolor,round cap-round cap, ]
+    (\titleposleft,\titleposbottom)--(\titleposright,\titleposbottom);
+    \end{scope}
+}
+
+% block
+\defineblockstyle{UMassBlockStyle}{
+    titlewidthscale=0.9, bodywidthscale=1, roundedcorners=5
+}{
+    \draw[color=framecolor, fill=blockbodybgcolor,
+    rounded corners=\blockroundedcorners] (blockbody.south west)
+    rectangle (blockbody.north east);
+    \ifBlockHasTitle
+    \draw[color=framecolor, fill=blocktitlebgcolor,
+    rounded corners=\blockroundedcorners] (blocktitle.south west)
+    rectangle (blocktitle.north east);
+    \fi
+}
+
+% -- THEME --
+% UMass Amherst theme
+\definelayouttheme{UMassTheme}{
+    \usecolorstyle[colorPalette=UMassPalette]{UMassStyle}
+    \usebackgroundstyle{UMassBackgroundStyle}
+    \usetitlestyle{UMassTitleStyle}
+    \useblockstyle{UMassBlockStyle}
+    \useinnerblockstyle{Default}
+    \usenotestyle{Default}
+}
+
+% -- TITLE FORMAT --
+
+\makeatletter
+\renewcommand\TP@maketitle{%
+   \centering
+   % Outer wrapper — narrower than \linewidth so logos stay inside the bar
+   \begin{minipage}[c]{0.94\linewidth}
+      \centering
+      % --- left logo ---
+      \begin{minipage}[c]{0.08\linewidth}
+           \centering
+           \@titlegraphic
+      \end{minipage}%
+      \hfill
+      % --- centred text ---
+      \begin{minipage}[c]{0.76\linewidth}
+           \centering
+           \color{titlefgcolor}
+           {\bfseries \Huge \sc \@title \par}
+           \vspace*{1em}
+           {\huge \@author \par}
+           \vspace*{1em}
+           {\LARGE \@institute}
+      \end{minipage}%
+      \hfill
+      % --- right logo ---
+      \begin{minipage}[c]{0.08\linewidth}
+           \centering
+           \@titlegraphic
+      \end{minipage}%
+   \end{minipage}
+}
+\makeatother

@@ -1,0 +1,8 @@
+# This file is used internally by FFMPEG.
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/1197456204_3271119550_4200741037.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2431784458_152790620_2820211624.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2326011781_2587684666_3005824990.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2326011781_856115090_2571282322.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2115297029_4014159724_2114913502.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2115297029_1037610987_2659555517.mp4'
+file 'file:/Users/kenlin/Desktop/Math 370 Finals/media/videos/borsuk_ulam_complex_plane/1080p60/partial_movie_files/BorsukUlamComplexPlane/2115297029_3438890776_2470822287.mp4'

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ham Sandwich Theorem — Interactive Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+  canvas { display: block; }
+  #ui {
+    position: absolute; top: 20px; left: 20px;
+    color: #eee; max-width: 340px;
+  }
+  #ui h1 { font-size: 22px; margin-bottom: 6px; color: #fff; }
+  #ui p { font-size: 13px; line-height: 1.5; color: #ccc; margin-bottom: 14px; }
+  #controls { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    padding: 10px 18px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  button:active { transform: translateY(0); }
+  #btnGenerate { background: #e08030; color: #fff; }
+  #btnTogglePlane { background: #18897a; color: #fff; }
+  #btnToggleWire { background: #6a5acd; color: #fff; }
+  #btnHamburger { background: #cc6633; color: #fff; }
+  #labelOverlay {
+    position: absolute; top: 0; left: 0;
+    pointer-events: none; width: 100%; height: 100%;
+  }
+  .label3d {
+    position: absolute; font-size: 18px; font-weight: 700;
+    text-shadow: 0 0 6px rgba(0,0,0,0.7);
+    pointer-events: none; transform: translate(-50%, -50%);
+  }
+  #hint {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    color: #888; font-size: 13px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <h1>Ham Sandwich Theorem</h1>
+  <p>Any three objects in 3D can be simultaneously bisected by a single plane.
+     Click and drag objects to move them — the plane updates live!</p>
+  <div id="controls">
+    <button id="btnGenerate">New Objects</button>
+    <button id="btnTogglePlane">Toggle Plane</button>
+    <button id="btnToggleWire">Toggle Wireframe</button>
+    <button id="btnHamburger">Hamburger</button>
+  </div>
+</div>
+
+<div id="labelOverlay">
+  <div class="label3d" id="labelA1">A₁</div>
+  <div class="label3d" id="labelA2">A₂</div>
+  <div class="label3d" id="labelA3">A₃</div>
+  <div class="label3d" id="labelPlane" style="color:#ccc; font-size:16px;">Π(n*)</div>
+</div>
+
+<div id="hint">Drag to rotate · Click an object to drag it · Scroll to zoom</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(8, 6, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.08;
+
+// lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
+dir1.position.set(5, 10, 7);
+scene.add(dir1);
+const dir2 = new THREE.DirectionalLight(0x8888ff, 0.3);
+dir2.position.set(-5, -3, -5);
+scene.add(dir2);
+
+// grid
+scene.add(new THREE.GridHelper(20, 20, 0x333355, 0x222244));
+
+const COLORS = [0xe08030, 0x18897a, 0xc42050];
+const BLOB_NAMES = ['labelA1', 'labelA2', 'labelA3'];
+const OPACITY_ABOVE = 0.88;
+const OPACITY_BELOW = 0.28;
+
+let blobGroups = [];   // each entry: { group, topMesh, botMesh, clipAbove, clipBelow, geo }
+let planeMesh = null;
+let planeVisible = true;
+let wireframeMode = false;
+
+// shared clipping plane objects (reused and updated)
+// clipAbove: keeps fragments above the plane (clips below)
+// clipBelow: keeps fragments below the plane (clips above)
+let clipAbove = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let clipBelow = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+
+let dragging = null;
+let dragPlane = new THREE.Plane();
+let dragOffset = new THREE.Vector3();
+let mouse = new THREE.Vector2();
+let raycaster = new THREE.Raycaster();
+let intersection = new THREE.Vector3();
+
+function randRange(lo, hi) {
+  return lo + Math.random() * (hi - lo);
+}
+
+function createBlobGroup(cx, cy, cz, color) {
+  const detail = 3 + Math.floor(Math.random() * 2);
+  const geo = new THREE.IcosahedronGeometry(1, detail);
+  const pos = geo.attributes.position;
+
+  const scaleX = randRange(0.7, 1.6);
+  const scaleY = randRange(0.7, 1.6);
+  const scaleZ = randRange(0.7, 1.6);
+  const bumpFreq = randRange(2, 6);
+  const bumpAmp = randRange(0.05, 0.25);
+
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i);
+    let y = pos.getY(i);
+    let z = pos.getZ(i);
+    const r = Math.sqrt(x*x + y*y + z*z);
+    const theta = Math.atan2(y, x);
+    const phi = Math.acos(z / (r || 1));
+    const bump = 1 + bumpAmp * Math.sin(bumpFreq * theta) * Math.cos(bumpFreq * phi * 0.7);
+    x *= scaleX * bump;
+    y *= scaleY * bump;
+    z *= scaleZ * bump;
+    pos.setXYZ(i, x, y, z);
+  }
+  geo.computeVertexNormals();
+
+  // per-blob clipping planes (each blob needs its own so we can toggle independently)
+  const myClipAbove = new THREE.Plane();
+  const myClipBelow = new THREE.Plane();
+
+  const matTop = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    metalness: 0.05,
+    transparent: true,
+    opacity: OPACITY_ABOVE,
+    side: THREE.DoubleSide,
+    clippingPlanes: [myClipAbove],
+    clipShadows: true,
+  });
+
+  const matBot = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    metalness: 0.05,
+    transparent: true,
+    opacity: OPACITY_BELOW,
+    side: THREE.DoubleSide,
+    clippingPlanes: [myClipBelow],
+    clipShadows: true,
+  });
+
+  const topMesh = new THREE.Mesh(geo, matTop);
+  const botMesh = new THREE.Mesh(geo, matBot);
+  botMesh.renderOrder = 0;
+  topMesh.renderOrder = 1;
+
+  const group = new THREE.Group();
+  group.add(topMesh);
+  group.add(botMesh);
+  group.position.set(cx, cy, cz);
+
+  return { group, topMesh, botMesh, clipAbove: myClipAbove, clipBelow: myClipBelow, geo };
+}
+
+function computePlaneParams() {
+  if (blobGroups.length < 3) return null;
+  const p1 = blobGroups[0].group.position;
+  const p2 = blobGroups[1].group.position;
+  const p3 = blobGroups[2].group.position;
+
+  const v1 = new THREE.Vector3().subVectors(p2, p1);
+  const v2 = new THREE.Vector3().subVectors(p3, p1);
+  const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+
+  if (normal.length() < 0.001) normal.set(0, 1, 0);
+  // ensure normal points upward so bottom half is always the translucent side
+  if (normal.y < 0) normal.negate();
+
+  const centroid = new THREE.Vector3().addVectors(p1, p2).add(p3).divideScalar(3);
+  const constant = -normal.dot(centroid);
+
+  return { normal, centroid, constant };
+}
+
+function updateClipping() {
+  const params = computePlaneParams();
+  if (!params) return;
+
+  const { normal, constant } = params;
+
+  // update each blob's clipping planes
+  for (const entry of blobGroups) {
+    // clipAbove keeps fragments where normal · x + constant >= 0 (above the plane)
+    entry.clipAbove.normal.copy(normal);
+    entry.clipAbove.constant = constant;
+    // clipBelow keeps fragments on the opposite side
+    entry.clipBelow.normal.copy(normal).negate();
+    entry.clipBelow.constant = -constant;
+
+    if (!planeVisible) {
+      entry.topMesh.material.clippingPlanes = [];
+      entry.botMesh.material.clippingPlanes = [];
+      entry.topMesh.material.opacity = OPACITY_ABOVE;
+      entry.botMesh.material.opacity = OPACITY_ABOVE;
+    } else {
+      entry.topMesh.material.clippingPlanes = [entry.clipAbove];
+      entry.botMesh.material.clippingPlanes = [entry.clipBelow];
+      entry.topMesh.material.opacity = OPACITY_ABOVE;
+      entry.botMesh.material.opacity = OPACITY_BELOW;
+    }
+  }
+}
+
+function updatePlaneMesh() {
+  if (planeMesh) scene.remove(planeMesh);
+
+  const params = computePlaneParams();
+  if (!params) return;
+  const { normal, centroid } = params;
+
+  const geo = new THREE.PlaneGeometry(18, 18);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xaaaacc,
+    transparent: true,
+    opacity: 0.45,
+    side: THREE.DoubleSide,
+    roughness: 0.8,
+    depthWrite: false,
+  });
+  planeMesh = new THREE.Mesh(geo, mat);
+  planeMesh.renderOrder = -1;
+  planeMesh.position.copy(centroid);
+
+  const up = new THREE.Vector3(0, 0, 1);
+  planeMesh.quaternion.setFromUnitVectors(up, normal);
+
+  const edgeGeo = new THREE.EdgesGeometry(geo);
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x8888aa, transparent: true, opacity: 0.5 });
+  planeMesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
+
+  planeMesh.visible = planeVisible;
+  scene.add(planeMesh);
+}
+
+function updateAll() {
+  updatePlaneMesh();
+  updateClipping();
+}
+
+function generate() {
+  blobGroups.forEach(b => scene.remove(b.group));
+  blobGroups = [];
+  if (planeMesh) { scene.remove(planeMesh); planeMesh = null; }
+
+  const positions = [];
+  for (let i = 0; i < 3; i++) {
+    let pos;
+    let tries = 0;
+    do {
+      pos = new THREE.Vector3(randRange(-4, 4), randRange(0.5, 4), randRange(-4, 4));
+      tries++;
+    } while (tries < 50 && positions.some(p => p.distanceTo(pos) < 3));
+    positions.push(pos);
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const entry = createBlobGroup(positions[i].x, positions[i].y, positions[i].z, COLORS[i]);
+    entry.topMesh.material.wireframe = wireframeMode;
+    entry.botMesh.material.wireframe = wireframeMode;
+    scene.add(entry.group);
+    blobGroups.push(entry);
+  }
+
+  updateAll();
+}
+
+function createDiscGroup(cx, cy, cz, radius, height, color) {
+  const geo = new THREE.CylinderGeometry(radius, radius, height, 48, 1);
+  geo.computeVertexNormals();
+
+  const myClipAbove = new THREE.Plane();
+  const myClipBelow = new THREE.Plane();
+
+  const matTop = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    metalness: 0.05,
+    transparent: true,
+    opacity: OPACITY_ABOVE,
+    side: THREE.DoubleSide,
+    clippingPlanes: [myClipAbove],
+  });
+
+  const matBot = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.45,
+    metalness: 0.05,
+    transparent: true,
+    opacity: OPACITY_BELOW,
+    side: THREE.DoubleSide,
+    clippingPlanes: [myClipBelow],
+  });
+
+  const topMesh = new THREE.Mesh(geo, matTop);
+  const botMesh = new THREE.Mesh(geo, matBot);
+  botMesh.renderOrder = 0;
+  topMesh.renderOrder = 1;
+
+  const group = new THREE.Group();
+  group.add(topMesh);
+  group.add(botMesh);
+  group.position.set(cx, cy, cz);
+
+  return { group, topMesh, botMesh, clipAbove: myClipAbove, clipBelow: myClipBelow, geo };
+}
+
+function hamburger() {
+  blobGroups.forEach(b => scene.remove(b.group));
+  blobGroups = [];
+  if (planeMesh) { scene.remove(planeMesh); planeMesh = null; }
+
+  const bunColor = 0xd4a050;
+  const pattyColor = 0x8b3a2a;
+
+  // top bun
+  const topBun = createDiscGroup(0, 3.5, 0, 1.8, 0.7, bunColor);
+  topBun.topMesh.material.wireframe = wireframeMode;
+  topBun.botMesh.material.wireframe = wireframeMode;
+  scene.add(topBun.group);
+  blobGroups.push(topBun);
+
+  // patty
+  const patty = createDiscGroup(0, 2, 0, 2.0, 0.5, pattyColor);
+  patty.topMesh.material.wireframe = wireframeMode;
+  patty.botMesh.material.wireframe = wireframeMode;
+  scene.add(patty.group);
+  blobGroups.push(patty);
+
+  // bottom bun
+  const botBun = createDiscGroup(0, 0.5, 0, 1.8, 0.7, bunColor);
+  botBun.topMesh.material.wireframe = wireframeMode;
+  botBun.botMesh.material.wireframe = wireframeMode;
+  scene.add(botBun.group);
+  blobGroups.push(botBun);
+
+  updateAll();
+}
+
+// ── Drag logic ──
+function onPointerDown(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const allMeshes = blobGroups.flatMap(b => [b.topMesh, b.botMesh]);
+  const hits = raycaster.intersectObjects(allMeshes);
+  if (hits.length > 0) {
+    // find which group was hit
+    const hitMesh = hits[0].object;
+    const entry = blobGroups.find(b => b.topMesh === hitMesh || b.botMesh === hitMesh);
+    if (entry) {
+      dragging = entry.group;
+      orbitControls.enabled = false;
+      renderer.domElement.style.cursor = 'grabbing';
+
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir);
+      dragPlane.setFromNormalAndCoplanarPoint(camDir, dragging.position);
+      raycaster.ray.intersectPlane(dragPlane, intersection);
+      dragOffset.subVectors(dragging.position, intersection);
+    }
+  }
+}
+
+function onPointerMove(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  if (!dragging) {
+    const allMeshes = blobGroups.flatMap(b => [b.topMesh, b.botMesh]);
+    const hits = raycaster.intersectObjects(allMeshes);
+    renderer.domElement.style.cursor = hits.length > 0 ? 'grab' : 'default';
+    return;
+  }
+
+  if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+    dragging.position.copy(intersection.add(dragOffset));
+    updateAll();
+  }
+}
+
+function onPointerUp() {
+  if (dragging) {
+    dragging = null;
+    orbitControls.enabled = true;
+    renderer.domElement.style.cursor = 'default';
+  }
+}
+
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('pointerup', onPointerUp);
+
+function updateLabels() {
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById(BLOB_NAMES[i]);
+    if (!blobGroups[i]) continue;
+    const pos = blobGroups[i].group.position.clone();
+    pos.y += 1.8;
+    pos.project(camera);
+    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.color = '#' + COLORS[i].toString(16).padStart(6, '0');
+    el.style.display = pos.z < 1 ? 'block' : 'none';
+  }
+  if (planeMesh && planeVisible) {
+    const pp = planeMesh.position.clone();
+    pp.x += 5; pp.z += 3;
+    pp.project(camera);
+    const lp = document.getElementById('labelPlane');
+    lp.style.left = (pp.x * 0.5 + 0.5) * window.innerWidth + 'px';
+    lp.style.top = (-pp.y * 0.5 + 0.5) * window.innerHeight + 'px';
+    lp.style.display = pp.z < 1 ? 'block' : 'none';
+  } else {
+    document.getElementById('labelPlane').style.display = 'none';
+  }
+}
+
+document.getElementById('btnGenerate').addEventListener('click', generate);
+document.getElementById('btnTogglePlane').addEventListener('click', () => {
+  planeVisible = !planeVisible;
+  if (planeMesh) planeMesh.visible = planeVisible;
+  updateClipping();
+});
+document.getElementById('btnToggleWire').addEventListener('click', () => {
+  wireframeMode = !wireframeMode;
+  blobGroups.forEach(b => {
+    b.topMesh.material.wireframe = wireframeMode;
+    b.botMesh.material.wireframe = wireframeMode;
+  });
+});
+
+document.getElementById('btnHamburger').addEventListener('click', hamburger);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+generate();
+
+function animate() {
+  requestAnimationFrame(animate);
+  orbitControls.update();
+  updateLabels();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(update-config)",
+      "Bash(pdflatex -interaction=nonstopmode borsuk_ulam_poster.tex)",
+      "Bash(python3 -c \"import manim; print\\(manim.__version__\\)\")",
+      "Bash(manim -qm --format=png --disable_caching ham_sandwich_3d.py HamSandwich3D)",
+      "Bash(pkill -f \"manim.*ham_sandwich_3d\")",
+      "Bash(manim -qh -s --disable_caching ham_sandwich_3d.py HamSandwich3D)",
+      "Read(//Applications/**)",
+      "Bash(mdfind \"kMDItemFSName == 'Blender*'\" -onlyin /Applications)",
+      "Bash(python3 *)",
+      "Bash(open *)",
+      "Bash(pip3 list *)",
+      "Bash(sips --formats)",
+      "Bash(pip3 install *)",
+      "Bash(mdls *)",
+      "Bash(pdflatex borsuk_ulam_poster.tex)",
+      "Bash(gh auth *)",
+      "Bash(brew install *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
