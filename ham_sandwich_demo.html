@@ -2,26 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Ham Sandwich Theorem — Interactive Demo</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
+  html, body {
+    position: fixed;
+    width: 100%; height: 100%;
     overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body {
     background: #111320;
     color: #f0ede6;
     font-family: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
   }
-  canvas { display: block; }
+  canvas { display: block; touch-action: none; }
 
   #panel {
     position: absolute;
-    left: 22px; top: 22px;
+    left: max(22px, env(safe-area-inset-left, 0px) + 10px);
+    top: max(22px, env(safe-area-inset-top, 0px) + 10px);
     width: min(380px, calc(100vw - 44px));
+    max-height: calc(100vh - 44px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 18px;
     border: 1px solid rgba(255,255,255,0.13);
     border-radius: 10px;
     background: rgba(17,19,32,0.86);
+    -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     box-shadow: 0 16px 40px rgba(0,0,0,0.35);
     z-index: 10;
@@ -37,6 +49,8 @@
     padding: 8px 14px; border: 0; border-radius: 6px;
     color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
     transition: filter 0.12s, transform 0.08s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   button:hover { filter: brightness(1.12); transform: translateY(-1px); }
   button:active { transform: translateY(0); }
@@ -93,7 +107,9 @@
   }
 
   #legend {
-    position: absolute; right: 22px; bottom: 22px;
+    position: absolute;
+    right: max(22px, env(safe-area-inset-right, 0px) + 10px);
+    bottom: max(22px, env(safe-area-inset-bottom, 0px) + 10px);
     display: flex; gap: 14px; padding: 10px 14px;
     border-radius: 8px;
     background: rgba(17,19,32,0.76);
@@ -113,7 +129,12 @@
   }
 
   @media (max-width: 700px) {
-    #panel { left: 10px; top: 10px; width: calc(100vw - 20px); padding: 12px; }
+    #panel {
+      left: max(10px, env(safe-area-inset-left, 0px));
+      top: max(10px, env(safe-area-inset-top, 0px));
+      width: calc(100vw - 20px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+      padding: 12px;
+    }
     #panel h1 { font-size: 17px; }
     .controls { flex-direction: column; }
     #legend, #hint { display: none; }
@@ -152,6 +173,7 @@
 
 <div id="hint">Drag to rotate &middot; Click an object to drag it &middot; Scroll to zoom</div>
 
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -166,17 +188,22 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ===== Scene ===== */
+function vw() { return (window.visualViewport || window).width; }
+function vh() { return (window.visualViewport || window).height; }
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111320);
 
-const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(48, vw() / vh(), 0.1, 200);
 camera.position.set(8, 6, 10);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(vw(), vh());
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.localClippingEnabled = true;
 document.body.appendChild(renderer.domElement);
+
+renderer.domElement.addEventListener('webglcontextlost', e => e.preventDefault(), false);
 
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.enableDamping = true;
@@ -558,8 +585,8 @@ function updateLabels() {
     const p = obj.group.position.clone();
     p.y += obj.boundsRadius + 0.5;
     p.project(camera);
-    el.style.left = (p.x * 0.5 + 0.5) * innerWidth + 'px';
-    el.style.top  = (-p.y * 0.5 + 0.5) * innerHeight + 'px';
+    el.style.left = (p.x * 0.5 + 0.5) * vw() + 'px';
+    el.style.top  = (-p.y * 0.5 + 0.5) * vh() + 'px';
     el.style.color = hexCSS(obj.colors.pos);
     el.style.display = p.z < 1 ? 'block' : 'none';
   });
@@ -568,8 +595,8 @@ function updateLabels() {
     const pp = planeVisual.position.clone();
     pp.x += 5.5; pp.z += 3;
     pp.project(camera);
-    plEl.style.left = (pp.x * 0.5 + 0.5) * innerWidth + 'px';
-    plEl.style.top  = (-pp.y * 0.5 + 0.5) * innerHeight + 'px';
+    plEl.style.left = (pp.x * 0.5 + 0.5) * vw() + 'px';
+    plEl.style.top  = (-pp.y * 0.5 + 0.5) * vh() + 'px';
     plEl.style.display = pp.z < 1 ? 'block' : 'none';
   }
 }
@@ -630,7 +657,7 @@ function hamburger() {
 
 /* ===== Drag logic ===== */
 function onPointerDown(e) {
-  mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  mouse.set((e.clientX / vw()) * 2 - 1, -(e.clientY / vh()) * 2 + 1);
   raycaster.setFromCamera(mouse, camera);
 
   const meshes = objects.flatMap(o => [o.posMesh, o.negMesh]);
@@ -652,7 +679,7 @@ function onPointerDown(e) {
 }
 
 function onPointerMove(e) {
-  mouse.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  mouse.set((e.clientX / vw()) * 2 - 1, -(e.clientY / vh()) * 2 + 1);
   raycaster.setFromCamera(mouse, camera);
 
   if (!dragging) {
@@ -871,11 +898,13 @@ sliderEl.addEventListener('input', () => {
 });
 
 /* ===== Resize ===== */
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+function onResize() {
+  camera.aspect = vw() / vh();
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
+  renderer.setSize(vw(), vh());
+}
+(window.visualViewport || window).addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(onResize, 200));
 
 /* ===== Init & loop ===== */
 buildPlaneVisual();
