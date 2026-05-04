@@ -1,4 +1,4 @@
-\documentclass[20pt,margin=1in,innermargin=-4.5in,blockverticalspace=-0.25in]{tikzposter}
+\documentclass[25pt,margin=1in,innermargin=-4.5in,blockverticalspace=-0.25in]{tikzposter}
 \geometry{paperwidth=42in,paperheight=32.5in}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
@@ -45,22 +45,22 @@
     the same temperature and pressure.
     \end{quote}
 
-    \vspace{0.5em}
+    \vspace{0.8em}
     This is not a coincidence --- it is a theorem.
 
-    \vspace{0.5em}
+    \vspace{0.8em}
     The \textbf{Borsuk-Ulam Theorem} (1933) says that any continuous map from a
     sphere into Euclidean space of one lower dimension must send some pair of
     antipodal points to the same value.
 
-    \vspace{0.5em}
+    \vspace{0.8em}
     It was conjectured by Stanislaw Ulam and proved by Karol Borsuk.  The result
     seems geometric but its proof is fundamentally topological --- and its
     consequences reach far beyond geometry.
 }
 
 \block{Key Definitions}{
-    \begin{itemize}[leftmargin=1.5em, itemsep=0.4em]
+    \begin{itemize}[leftmargin=1.5em, itemsep=0.5em, topsep=0.3em]
         \item $\mathbf{R}$ = real numbers; $\mathbf{C}$ = complex plane;
               $\mathbf{C}^* = \mathbf{C}\setminus\{0\}$ the punctured plane.
         \item \textbf{Sphere:} $S^2 = \{(x,y,z)\in\mathbf{R}^3 : x^2+y^2+z^2=1\}$.
@@ -74,62 +74,17 @@
     \end{itemize}
 }
 
-\block{Main Theorem}{
-    \textbf{Theorem (Borsuk-Ulam, 1933).}\quad
-    \textit{Let $F : S^2 \to \mathbf{R}^2$ be continuous.  Then there exists a
-    pair of antipodal points $P$ and $P'$ such that $F(P) = F(P')$.}
-
-    \vspace{0.5em}
-    Equivalently: no continuous map $F : S^2 \to \mathbf{R}^2$ can satisfy
-    $F(P) \neq F(P')$ for all $P \in S^2$.
-
-    \vspace{1em}
-    \begin{tikzfigure}[]
-    \begin{tikzpicture}[scale=1.0,
-        every node/.style={font=\large},
-        >=Stealth]
-      % --- sphere ---
-      \draw[line width=2pt] (0,0) circle (2.6cm);
-      \draw[line width=1.5pt, dashed] (0,0) ellipse (2.6cm and 0.65cm);
-      % antipodal points
-      \fill[UMassMaroon] (0, 2.6) circle (5pt);
-      \node[above=4pt] at (0,2.6) {$P$};
-      \fill[UMassMaroon] (0,-2.6) circle (5pt);
-      \node[below=4pt] at (0,-2.6) {\large$P'$\,(antipodal to $P$)};
-      % sphere label
-      \node[right=6pt] at (2.6,0) {$S^2$};
-      % target point in R^2
-      \fill[UMassTeal] (7.5,0) circle (6pt);
-      \node[right=6pt] at (7.5,0) {$F(P)=F(P')$};
-      % R^2 label
-      \node[below=6pt] at (7.5,-0.4) {$\mathbf{R}^2$};
-      % arrows
-      \draw[->, line width=2pt, UMassTeal]
-            (0.15,2.55) .. controls (3,2) .. (7.3,0.12);
-      \draw[->, line width=2pt, UMassTeal]
-            (0.15,-2.55) .. controls (3,-2) .. (7.3,-0.12);
-      % F label on top arrow
-      \node[above] at (3.5,1.6) {$F$};
-    \end{tikzpicture}
-    \end{tikzfigure}
-}
-
-%% ============================================================
-%%  COLUMN 2
-%% ============================================================
-\column{0.36}
-
 \block{Proof Strategy}{
     Identifying $\mathbf{R}^2$ with $\mathbf{C}$, we regard $F$ as an element
     of $C(S^2)$. The proof proceeds by \textbf{contradiction}.
 
-    \vspace{0.8em}
+    \vspace{0.6em}
     \textbf{Step 1 --- Assume no antipodal pair maps equally.}\\
     Suppose $F(P) \neq F(P')$ for all $P$ in $S^2$. Define $G : S^2 \to \mathbf{C}$
     by $G(P) = F(P) - F(P')$. Then $G$ belongs to $C^*(S^2)$, and
     $G(P) = -G(P')$ for all $P$ in $S^2$.
 
-    \vspace{0.8em}
+    \vspace{0.6em}
     \textbf{Step 2 --- Parametrize via the upper hemisphere.}\\
     Define $f$ in $C(D)$ by
     \[
@@ -138,12 +93,19 @@
     (identify the upper hemisphere with the closed unit disk).
     Then $f(z)\neq 0$ for all $z$ in $D$ --- i.e., $f$ belongs to $C^*(D)$ ---
     and $f(z) = -f(-z)$ for all $z$ in $T$.
+}
 
-    \vspace{0.8em}
+%% ============================================================
+%%  COLUMN 2
+%% ============================================================
+\column{0.36}
+
+\block{}{
+    \vspace{0.3em}
     \textbf{Step 3 --- Apply Proposition 1.}\\
     By Proposition 1, there exists $h$ in $C(D)$ such that $f = e^h$.
 
-    \vspace{0.8em}
+    \vspace{0.6em}
     \textbf{Step 4 --- Derive the contradiction.}\\
     Let $k(z) = (1/i\pi)[h(z) - h(-z)]$ for $z\in T$.
 
@@ -164,16 +126,49 @@
     \textbf{Contradiction.}\quad $\blacksquare$
 }
 
+\block{Main Theorem}{
+    \textbf{Theorem (Borsuk-Ulam, 1933).}\quad
+    \textit{Let $F : S^2 \to \mathbf{R}^2$ be continuous.  Then there exists a
+    pair of antipodal points $P$ and $P'$ such that $F(P) = F(P')$.}
+
+    \vspace{0.5em}
+    Equivalently: no continuous map $F : S^2 \to \mathbf{R}^2$ can satisfy
+    $F(P) \neq F(P')$ for all $P \in S^2$.
+
+    \vspace{0.8em}
+    \begin{tikzfigure}[]
+    \begin{tikzpicture}[scale=1.0,
+        every node/.style={font=\large},
+        >=Stealth]
+      \draw[line width=2pt] (0,0) circle (2.6cm);
+      \draw[line width=1.5pt, dashed] (0,0) ellipse (2.6cm and 0.65cm);
+      \fill[UMassMaroon] (0, 2.6) circle (5pt);
+      \node[above=4pt] at (0,2.6) {$P$};
+      \fill[UMassMaroon] (0,-2.6) circle (5pt);
+      \node[below=4pt] at (0,-2.6) {\large$P'$\,(antipodal to $P$)};
+      \node[right=6pt] at (2.6,0) {$S^2$};
+      \fill[UMassTeal] (7.5,0) circle (6pt);
+      \node[right=6pt] at (7.5,0) {$F(P)=F(P')$};
+      \node[below=6pt] at (7.5,-0.4) {$\mathbf{R}^2$};
+      \draw[->, line width=2pt, UMassTeal]
+            (0.15,2.55) .. controls (3,2) .. (7.3,0.12);
+      \draw[->, line width=2pt, UMassTeal]
+            (0.15,-2.55) .. controls (3,-2) .. (7.3,-0.12);
+      \node[above] at (3.5,1.6) {$F$};
+    \end{tikzpicture}
+    \end{tikzfigure}
+}
+
 \block{Application: The Ham Sandwich Theorem}{
     \textbf{Theorem (Stone--Tukey, 1942).}\quad
     \textit{Given any three bounded measurable sets
     $A_1, A_2, A_3 \subset \mathbf{R}^3$, there exists a single plane that
     simultaneously bisects all three.}
 
-    \vspace{0.5em}
+    \vspace{0.4em}
     The sets can be in any configuration --- no geometric conditions required.
 
-    \vspace{0.8em}
+    \vspace{0.6em}
     \textbf{Proof via Borsuk-Ulam:}
 
     \vspace{0.4em}
@@ -202,7 +197,7 @@
 \column{0.32}
 
 \block{}{
-    \vspace{0.4em}
+    \vspace{0.3em}
     \textbf{Step 3 (Signed measure $\mu$).}\;
     Let $\mu$ denote the Lebesgue measure (volume) in $\mathbf{R}^3$.
     The plane $\Pi(\mathbf{n})$ splits each $A_i$ into a positive side
@@ -232,28 +227,37 @@
     already bisecting $A_1$ by construction.
     \quad$\blacksquare$
 
-    \vspace{0.5em}
+    \vspace{0.8em}
     \begin{tikzfigure}[]
-        \includegraphics[width=0.6\linewidth]{ham_sandwich.png}
+        \includegraphics[width=0.78\linewidth]{ham_sandwich.png}
     \end{tikzfigure}
 }
 
 \block{Conclusions \& Further Directions}{
+    \vspace{0.6em}
     This poster proves the $S^2\to\mathbf{R}^2$ case of the Borsuk-Ulam
-    theorem. Future work could explore the generalized theorem:
+    theorem.
+
+    \vspace{0.8em}
+    Future work could explore the generalized theorem:
     every continuous map $F:S^n\to\mathbf{R}^n$ identifies some antipodal pair.
+
+    \vspace{0.8em}
     Additionally, one may investigate the generalized Ham Sandwich theorem,
     which states that any $n$ measurable objects in $\mathbf{R}^n$ can be
     simultaneously bisected by a single $(n{-}1)$-dimensional hyperplane.
+    \vspace{0.6em}
 }
 
 \block{Acknowledgements}{
-    \begin{itemize}[leftmargin=1.5em, itemsep=0.25em, topsep=0.2em]
+    {\small
+    \begin{itemize}[leftmargin=1.5em, itemsep=0.2em, topsep=0.1em]
         \item UMass Amherst Department of Mathematics, for support and guidance.
         \item 3Blue1Brown, for visual intuition through mathematical animation.
         \item Andrew Browder, for the proof in \textit{Complex Numbers and the
               Ham Sandwich Theorem} (The American Mathematical Monthly, 2006).
     \end{itemize}
+    }
 }
 
 \end{columns}

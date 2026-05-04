@@ -436,6 +436,17 @@ function splitFraction(obj) {
   return pos / obj.localSamples.length;
 }
 
+function bisectingOffsetForObject(obj, normal) {
+  const gp = obj.group.position;
+  return median(obj.localSamples.map(s =>
+    normal.x * (s.x + gp.x) + normal.y * (s.y + gp.y) + normal.z * (s.z + gp.z)
+  ));
+}
+
+function offsetForFirstObject(normal) {
+  return objects.length ? bisectingOffsetForObject(objects[0], normal) : 0;
+}
+
 /* ===== Readouts & status ===== */
 function updateReadouts() {
   const rows = objects.map((obj, i) => {
@@ -474,7 +485,7 @@ function updateStatus() {
     const allOk = objects.every(o => Math.abs(splitFraction(o) - 0.5) < 0.025);
     statusEl.textContent = allOk
       ? '✓ All objects approximately bisected!'
-      : 'Rotate the plane direction to find a simultaneous bisection';
+      : 'A₁ stays bisected; rotate direction to watch the other imbalances change';
   }
 }
 
@@ -508,7 +519,7 @@ function configureMultiSlider(keepValue) {
 
 function applyMultiSlider(t) {
   const n = normalFromParam(t);
-  setPlane(n, centroidOffset(n));
+  setPlane(n, offsetForFirstObject(n));
 }
 
 function updateSliderMode(keep) {
@@ -691,19 +702,8 @@ function splitFractionForNormal(obj, n, off) {
   return pos / obj.localSamples.length;
 }
 
-function centroidOffset(n) {
-  const nx = n.x, ny = n.y, nz = n.z;
-  let total = 0;
-  for (const obj of objects) {
-    const gp = obj.group.position;
-    const c = obj.localCentroid;
-    total += nx * (c.x + gp.x) + ny * (c.y + gp.y) + nz * (c.z + gp.z);
-  }
-  return total / objects.length;
-}
-
 function imbalance(n) {
-  const off = centroidOffset(n);
+  const off = offsetForFirstObject(n);
   let loss = 0;
   for (const obj of objects) {
     const f = splitFractionForNormal(obj, n, off);
@@ -717,8 +717,15 @@ function normalFromSpherical(theta, phi) {
   return new THREE.Vector3(st * Math.cos(phi), Math.cos(theta), st * Math.sin(phi));
 }
 
-function refineAround(seeds, count, radius, decay) {
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function refineAround(seeds, count, radius, decay, progressStart, progressSpan) {
   const results = [];
+  const total = Math.max(1, seeds.length * count);
+  let done = 0;
+  let preview = null;
   for (const c of seeds) {
     for (let j = 0; j < count; j++) {
       const r = radius * (1 - decay * j / count);
@@ -726,39 +733,61 @@ function refineAround(seeds, count, radius, decay) {
       const phi = c.phi + rand(-r, r);
       const n = normalFromSpherical(theta, phi);
       const { loss, offset } = imbalance(n);
-      results.push({ theta, phi, n, loss, offset });
+      const result = { theta, phi, n, loss, offset };
+      results.push(result);
+      if (!preview || result.loss < preview.loss) preview = result;
+      done++;
+      if (done % 16 === 0) {
+        if (preview) {
+          setPlane(preview.n, preview.offset);
+          updateReadouts();
+        }
+        const pct = progressStart + progressSpan * (done / total);
+        statusEl.textContent = `Searching... (${Math.round(pct)}%)`;
+        await nextFrame();
+      }
     }
   }
   results.sort((a, b) => a.loss - b.loss);
   return results;
 }
 
-function findBisection() {
+async function findBisection() {
   if (objects.length < 2 || searching) return;
   searching = true;
   const btnFind = document.getElementById('btnFind');
   btnFind.disabled = true;
   statusEl.textContent = 'Searching...';
+  await nextFrame();
 
   // Phase 1: coarse random search over the sphere
   const coarse = [];
+  let preview = null;
   for (let i = 0; i < 600; i++) {
     const theta = rand(0.05, Math.PI - 0.05);
     const phi = rand(0, Math.PI * 2);
     const n = normalFromSpherical(theta, phi);
     const { loss, offset } = imbalance(n);
-    coarse.push({ theta, phi, n, loss, offset });
+    const result = { theta, phi, n, loss, offset };
+    coarse.push(result);
+    if (!preview || result.loss < preview.loss) preview = result;
+    if (i % 16 === 15) {
+      setPlane(preview.n, preview.offset);
+      updateReadouts();
+      statusEl.textContent = `Searching... (${Math.round(20 * ((i + 1) / 600))}%)`;
+      await nextFrame();
+    }
   }
   coarse.sort((a, b) => a.loss - b.loss);
 
   // Phase 2: medium refinement around top candidates
-  const phase2 = refineAround(coarse.slice(0, 15), 60, 0.25, 0.8);
+  const phase2 = await refineAround(coarse.slice(0, 15), 60, 0.25, 0.8, 20, 35);
 
   // Phase 3: fine refinement around best of phase 2
-  const phase3 = refineAround(phase2.slice(0, 8), 80, 0.06, 0.85);
+  const phase3 = await refineAround(phase2.slice(0, 8), 80, 0.06, 0.85, 55, 25);
 
   // Phase 4: ultra-fine around the very best
-  const phase4 = refineAround(phase3.slice(0, 3), 120, 0.012, 0.9);
+  const phase4 = await refineAround(phase3.slice(0, 3), 120, 0.012, 0.9, 80, 15);
 
   // Overall best
   const allResults = [...phase3, ...phase4];
@@ -783,7 +812,7 @@ function findBisection() {
       updateReadouts();
       const allOk = objects.every(o => Math.abs(splitFraction(o) - 0.5) < 0.025);
       statusEl.textContent = allOk
-        ? '✓ Bisection found ��� all objects simultaneously bisected!'
+        ? '✓ Bisection found - all objects simultaneously bisected!'
         : `Best bisection found (${(Math.sqrt(best.loss / objects.length) * 100).toFixed(1)}% avg deviation)`;
 
       familyU = best.n.clone();

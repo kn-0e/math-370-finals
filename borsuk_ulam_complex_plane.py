@@ -126,7 +126,7 @@ class BorsukUlamComplexPlane(ThreeDScene):
         self.add_fixed_orientation_mobjects(re_label, im_label, plane_label)
 
         map_label = MathTex(r"F:S^2\to\mathbb{C}", font_size=34, color=ink)
-        map_label.to_corner(UR, buff=0.45)
+        map_label.move_to(UP * 2.35)
         self.add_fixed_in_frame_mobjects(map_label)
 
         self.play(
