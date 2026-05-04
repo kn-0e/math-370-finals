@@ -38,7 +38,42 @@
     box-shadow: 0 16px 40px rgba(0,0,0,0.35);
     z-index: 10;
   }
-  #panel h1 { font-size: 20px; margin-bottom: 6px; }
+  #panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  #panel h1 { font-size: 20px; }
+  #btnCollapse {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 6px;
+    color: #ccc; font-size: 16px; font-weight: 400;
+    padding: 2px 8px; line-height: 1.4;
+    cursor: pointer; flex-shrink: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+  }
+  #btnCollapse:hover { background: rgba(255,255,255,0.18); }
+
+  #panel.collapsed { padding: 0; background: transparent;
+    border: none; box-shadow: none; backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  #panel.collapsed #panel-body { display: none; }
+  #panel.collapsed #panel-header {
+    margin-bottom: 0;
+  }
+  #panel.collapsed #btnCollapse {
+    background: rgba(17,19,32,0.86);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 20px; color: #f0ede6;
+  }
+  #panel.collapsed h1 { display: none; }
   #panel .desc {
     font-size: 12.5px; line-height: 1.55; color: #aaa; margin-bottom: 14px;
   }
@@ -144,24 +179,29 @@
 <body>
 
 <div id="panel">
-  <h1>Ham Sandwich Theorem</h1>
-  <p class="desc">Any <em>n</em> measurable sets in <em>R<sup>n</sup></em> can be
-  simultaneously bisected by a single hyperplane. Drag objects to reposition
-  them&mdash;the bisecting plane updates live.</p>
-  <div class="controls">
-    <button id="btnNew">New Scene</button>
-    <button id="btnAdd">Add Object</button>
-    <button id="btnPlane">New Plane</button>
-    <button id="btnWire">Wireframe</button>
-    <button id="btnBurger">Hamburger</button>
-    <button id="btnFind">Find Bisection</button>
+  <div id="panel-header">
+    <h1>Ham Sandwich Theorem</h1>
+    <button id="btnCollapse" title="Hide panel">&#x2715;</button>
   </div>
-  <div class="slider-row">
-    <label id="sliderLabel" for="slider">Plane Position</label>
-    <input id="slider" type="range" min="0" max="1" step="0.001" value="0.5">
+  <div id="panel-body">
+    <p class="desc">Any <em>n</em> measurable sets in <em>R<sup>n</sup></em> can be
+    simultaneously bisected by a single hyperplane. Drag objects to reposition
+    them&mdash;the bisecting plane updates live.</p>
+    <div class="controls">
+      <button id="btnNew">New Scene</button>
+      <button id="btnAdd">Add Object</button>
+      <button id="btnPlane">New Plane</button>
+      <button id="btnWire">Wireframe</button>
+      <button id="btnBurger">Hamburger</button>
+      <button id="btnFind">Find Bisection</button>
+    </div>
+    <div class="slider-row">
+      <label id="sliderLabel" for="slider">Plane Position</label>
+      <input id="slider" type="range" min="0" max="1" step="0.001" value="0.5">
+    </div>
+    <div id="readouts"></div>
+    <div id="status">Drag the slider to move the bisection plane</div>
   </div>
-  <div id="readouts"></div>
-  <div id="status">Drag the slider to move the bisection plane</div>
 </div>
 
 <div id="labelOverlay"></div>
@@ -905,6 +945,15 @@ function onResize() {
 }
 (window.visualViewport || window).addEventListener('resize', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 200));
+
+/* ===== Panel collapse ===== */
+const panelEl = document.getElementById('panel');
+const btnCollapse = document.getElementById('btnCollapse');
+btnCollapse.addEventListener('click', () => {
+  const collapsed = panelEl.classList.toggle('collapsed');
+  btnCollapse.textContent = collapsed ? '☰' : '✕';
+  btnCollapse.title = collapsed ? 'Show panel' : 'Hide panel';
+});
 
 /* ===== Init & loop ===== */
 buildPlaneVisual();
