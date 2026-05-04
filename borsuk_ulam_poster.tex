@@ -74,58 +74,6 @@
     \end{itemize}
 }
 
-\block{Proof Strategy}{
-    Identifying $\mathbf{R}^2$ with $\mathbf{C}$, we regard $F$ as an element
-    of $C(S^2)$. The proof proceeds by \textbf{contradiction}.
-
-    \vspace{0.6em}
-    \textbf{Step 1 --- Assume no antipodal pair maps equally.}\\
-    Suppose $F(P) \neq F(P')$ for all $P$ in $S^2$. Define $G : S^2 \to \mathbf{C}$
-    by $G(P) = F(P) - F(P')$. Then $G$ belongs to $C^*(S^2)$, and
-    $G(P) = -G(P')$ for all $P$ in $S^2$.
-
-    \vspace{0.6em}
-    \textbf{Step 2 --- Parametrize via the upper hemisphere.}\\
-    Define $f$ in $C(D)$ by
-    \[
-        f(x+iy) = G\!\left(x,\,y,\,\sqrt{1-x^2-y^2}\right)
-    \]
-    (identify the upper hemisphere with the closed unit disk).
-    Then $f(z)\neq 0$ for all $z$ in $D$ --- i.e., $f$ belongs to $C^*(D)$ ---
-    and $f(z) = -f(-z)$ for all $z$ in $T$.
-}
-
-%% ============================================================
-%%  COLUMN 2
-%% ============================================================
-\column{0.36}
-
-\block{}{
-    \vspace{0.3em}
-    \textbf{Step 3 --- Apply Proposition 1.}\\
-    By Proposition 1, there exists $h$ in $C(D)$ such that $f = e^h$.
-
-    \vspace{0.6em}
-    \textbf{Step 4 --- Derive the contradiction.}\\
-    Let $k(z) = (1/i\pi)[h(z) - h(-z)]$ for $z\in T$.
-
-    \vspace{0.4em}
-    For $z\in T$:
-    \[
-        \exp[i\pi k(z)] = f(z)/f(-z) = -1,
-    \]
-    so $k(z)$ is an \textbf{odd integer}. Since $k$ is continuous and $T$ is
-    connected, $k$ must be constant.
-
-    \vspace{0.4em}
-    So we have
-    \[
-        h(1) = h(-1) + ki\pi = h(1) + 2ki\pi,
-    \]
-    forcing $k = 0$ --- impossible since $0$ is \textbf{not} an odd integer.
-    \textbf{Contradiction.}\quad $\blacksquare$
-}
-
 \block{Main Theorem}{
     \textbf{Theorem (Borsuk-Ulam, 1933).}\quad
     \textit{Let $F : S^2 \to \mathbf{R}^2$ be continuous.  Then there exists a
@@ -157,6 +105,58 @@
       \node[above] at (3.5,1.6) {$F$};
     \end{tikzpicture}
     \end{tikzfigure}
+}
+
+%% ============================================================
+%%  COLUMN 2
+%% ============================================================
+\column{0.36}
+
+\block{Proof Strategy}{
+    Identifying $\mathbf{R}^2$ with $\mathbf{C}$, we regard $F$ as an element
+    of $C(S^2)$. The proof proceeds by \textbf{contradiction}.
+
+    \vspace{0.6em}
+    \textbf{Step 1 --- Assume no antipodal pair maps equally.}\\
+    Suppose $F(P) \neq F(P')$ for all $P$ in $S^2$. Define $G : S^2 \to \mathbf{C}$
+    by $G(P) = F(P) - F(P')$. Then $G$ belongs to $C^*(S^2)$, and
+    $G(P) = -G(P')$ for all $P$ in $S^2$.
+
+    \vspace{0.6em}
+    \textbf{Step 2 --- Parametrize via the upper hemisphere.}\\
+    Define $f$ in $C(D)$ by
+    \[
+        f(x+iy) = G\!\left(x,\,y,\,\sqrt{1-x^2-y^2}\right)
+    \]
+    (identify the upper hemisphere with the closed unit disk).
+    Then $f(z)\neq 0$ for all $z$ in $D$ --- i.e., $f$ belongs to $C^*(D)$ ---
+    and $f(z) = -f(-z)$ for all $z$ in $T$.
+}
+
+\block{}{
+    \vspace{0.3em}
+    \textbf{Step 3 --- Apply Proposition 1.}\\
+    By Proposition 1, there exists $h$ in $C(D)$ such that $f = e^h$.
+
+    \vspace{0.6em}
+    \textbf{Step 4 --- Derive the contradiction.}\\
+    Let $k(z) = (1/i\pi)[h(z) - h(-z)]$ for $z\in T$.
+
+    \vspace{0.4em}
+    For $z\in T$:
+    \[
+        \exp[i\pi k(z)] = f(z)/f(-z) = -1,
+    \]
+    so $k(z)$ is an \textbf{odd integer}. Since $k$ is continuous and $T$ is
+    connected, $k$ must be constant.
+
+    \vspace{0.4em}
+    So we have
+    \[
+        h(1) = h(-1) + ki\pi = h(1) + 2ki\pi,
+    \]
+    forcing $k = 0$ --- impossible since $0$ is \textbf{not} an odd integer.
+    \textbf{Contradiction.}\quad $\blacksquare$
 }
 
 \block{Application: The Ham Sandwich Theorem}{
