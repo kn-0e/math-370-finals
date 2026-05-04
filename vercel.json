@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/ham_sandwich_demo.html" }
+  ]
+}
