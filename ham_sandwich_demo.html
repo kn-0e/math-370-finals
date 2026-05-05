@@ -58,7 +58,8 @@
 
   #panel.collapsed #panel-body { display: none; }
   #panel.collapsed #panel-header { margin-bottom: 0; }
-  #panel.collapsed #readouts { margin-top: 10px; }
+  #panel.collapsed .slider-row { margin-top: 10px; }
+  #panel.collapsed #readouts { margin-top: 6px; }
   #panel .desc {
     font-size: 12.5px; line-height: 1.55; color: #aaa; margin-bottom: 14px;
   }
@@ -180,11 +181,11 @@
       <button id="btnBurger">Hamburger</button>
       <button id="btnFind">Find Bisection</button>
     </div>
-    <div class="slider-row">
-      <label id="sliderLabel" for="slider">Plane Position</label>
-      <input id="slider" type="range" min="0" max="1" step="0.001" value="0.5">
-    </div>
     <div id="status">Drag the slider to move the bisection plane</div>
+  </div>
+  <div class="slider-row">
+    <label id="sliderLabel" for="slider">Plane Position</label>
+    <input id="slider" type="range" min="0" max="1" step="0.001" value="0.5">
   </div>
   <div id="readouts"></div>
 </div>
